@@ -17,6 +17,7 @@ import android.widget.LinearLayout;
 import edu.uml.cs.isense.R;
 import edu.uml.cs.isense.comm.API;
 import edu.uml.cs.isense.comm.Connection;
+import edu.uml.cs.isense.comm.UploadInfo;
 import edu.uml.cs.isense.credentials.CredentialManager;
 import edu.uml.cs.isense.objects.RProjectField;
 import edu.uml.cs.isense.supplements.ObscuredSharedPreferences;
@@ -231,7 +232,6 @@ public class ProjectManager extends Activity implements OnClickListener {
 	}
 
 	// Performs tasks after returning to main UI from previous activities
-	@SuppressWarnings("unchecked")
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		super.onActivityResult(requestCode, resultCode, data);
@@ -320,7 +320,8 @@ public class ProjectManager extends Activity implements OnClickListener {
 			if (params[1] instanceof ArrayList<?>) {
 				@SuppressWarnings("unchecked")
 				ArrayList<RProjectField> fields = (ArrayList<RProjectField>) params[1];
-				return api.createProject(projName, fields);
+				UploadInfo info = api.createProject(projName, fields);
+				return info.projectId;
 			} else {
 				return -1;
 			}

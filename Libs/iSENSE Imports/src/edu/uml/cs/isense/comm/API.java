@@ -231,23 +231,27 @@ public class API {
 	 *            iSENSE.
 	 * @return The ID of the created project
 	 */
-	public int createProject(String projectName, ArrayList<RProjectField> fields) {
+	public UploadInfo createProject(String projectName, ArrayList<RProjectField> fields) {
+		UploadInfo info = new UploadInfo();
+		String fieldResult = "";
+		String projResult = "";
 		try {
 			JSONObject postData = new JSONObject();
 			postData.put("email", email);
 			postData.put("password", password);
 			postData.put("project_name", projectName);
-			String reqResult = makeRequest(
+			projResult = makeRequest(
 					baseURL,
 					"projects",
 					"", "POST",
 					postData);
-			JSONObject jobj = new JSONObject(reqResult);
-			int pid = jobj.getInt("id");
+			JSONObject jobj = new JSONObject(projResult);
+			info.projectId = jobj.getInt("id");
 
+			// Add Fields to Project
 			for (RProjectField rpf : fields) {
 				JSONObject mField = new JSONObject();
-				mField.put("project_id", pid);
+				mField.put("project_id", info.projectId);
 				mField.put("field_type", rpf.type);
 				mField.put("name", rpf.name);
 				mField.put("unit", rpf.unit);
@@ -255,15 +259,46 @@ public class API {
 				postData2.put("email", email);
 				postData2.put("password", password);
 				postData2.put("field", mField);
-				makeRequest(baseURL, "fields", "", "POST",
+				fieldResult = makeRequest(baseURL, "fields", "", "POST",
 						postData2);
+				JSONObject fieldObj = new JSONObject(fieldResult);
+				// Failed to add field to project, return failure and error
+				// message
+				if (fieldObj.getInt("id") != -1) {
+					try {
+						info.errorMessage = fieldObj.getString("msg");
+						info.success = false;
+						return info;
+					} catch (Exception e2) {
+						try {
+							info.errorMessage = fieldObj.getString("error");
+							info.success = false;
+							return info;
+						} catch (Exception e3) {
+							info.errorMessage = projResult;
+						}
+					}
+				}
 			}
 
-			return pid;
+			info.success = true;
+			return info;
 		} catch (Exception e) {
-			e.printStackTrace();
+			try {
+				JSONObject jobj = new JSONObject(projResult);
+				info.errorMessage = jobj.getString("msg");
+			} catch (Exception e2) {
+				try {
+					JSONObject jobj = new JSONObject(projResult);
+					info.errorMessage = jobj.getString("error");
+				} catch (Exception e3) {
+					info.errorMessage = projResult;
+				}
+			}
 		}
-		return -1;
+		info.projectId = -1;
+		info.success = false;
+		return info;
 	}
 
 	/**
@@ -272,17 +307,17 @@ public class API {
 	 *
 	 * @param projectId
 	 *            The ID of the project on iSENSE to be deleted
-	 * @return 1 if the deletion succeeds.
+	 * @return true if the deletion succeeds.
 	 */
-	public int deleteProject(int projectId) {
+	public boolean deleteProject(int projectId) {
 		try {
 			makeRequest(baseURL, "projects/" + projectId, "authenticity_token="
 					+ URLEncoder.encode(authToken, "UTF-8"), "DELETE", null);
-			return 1;
+			return true;
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		return -1;
+		return false;
 	}
 
 	/**
@@ -415,6 +450,7 @@ public class API {
 					requestData);
 			JSONObject jobj = new JSONObject(reqResult);
             info.dataSetId = jobj.getInt("id");
+            info.success = true;
 			return info;
 		} catch (Exception e) {
             try {
@@ -429,6 +465,7 @@ public class API {
                 }
             }
         }
+		info.success = false;
         info.dataSetId = -1;
 		return info;
 	}
@@ -465,6 +502,7 @@ public class API {
 					requestData);
             JSONObject jobj = new JSONObject(reqResult);
             info.dataSetId = jobj.getInt("id");
+            info.success = true;
             return info;
         } catch (Exception e) {
             try {
@@ -479,6 +517,7 @@ public class API {
                 }
             }
 		}
+		info.success = false;
         info.dataSetId = -1;
 		return info;
 	}
@@ -495,9 +534,11 @@ public class API {
 	 *
 	 * @return success or failure
 	 */
-	public boolean appendDataSetData(int dataSetId, JSONObject newData) {
+	public UploadInfo appendDataSetData(int dataSetId, JSONObject newData) {
+		UploadInfo info = new UploadInfo();
 		JSONObject requestData = new JSONObject();
 		RDataSet existingDs = getDataSet(dataSetId);
+		String result = "";
 		try {
 			JSONObject combined = existingDs.data;
 			// merge newdata into combined
@@ -527,21 +568,34 @@ public class API {
 			requestData.put("data", combined);
 			requestData.put("id", "" + dataSetId);
 
-			String result = makeRequest(
+			result = makeRequest(
 					baseURL,
 					"data_sets/" + dataSetId + "/edit",
 					"authenticity_token="
 							+ URLEncoder.encode(authToken, "UTF-8"), "POST",
 							requestData);
-			new JSONObject(result); // this line will throw an exception if it
-			// fails, thus returning false
+
+			JSONObject resultObject = new JSONObject(result);
+
+			// if status is not 200 return false
+			if (200 != resultObject.getInt("status")) {
+				JSONObject jobj = new JSONObject(result);
+				info.errorMessage = jobj.getString("error");
+				info.success = false;
+				return info;
+			}
 
 		} catch (Exception e) {
-			e.printStackTrace();
-			return false;
+			 try {
+	                JSONObject jobj = new JSONObject(result);
+	                info.errorMessage = jobj.getString("msg");
+	            } catch (Exception e2) {
+                    info.errorMessage = result;
+	            }
 		}
 
-		return true;
+		info.success = true;
+		return info;
 	}
 
 	/**
@@ -617,13 +671,10 @@ public class API {
                 try {
                     JSONObject jobj = new JSONObject(output);
                     info.errorMessage = jobj.getString("msg");
-                    info.mediaId = -1;
                     return info;
                 } catch (Exception e2) {
                     JSONObject jobj = new JSONObject(output);
                     info.errorMessage = jobj.getString("error");
-                    info.mediaId = -1;
-                    return info;
                 }
 			} finally {
 				in.close();
@@ -631,7 +682,9 @@ public class API {
 
 		} catch (Exception e) {
 			e.printStackTrace();
+			info.errorMessage = output;
 		}
+		info.success = false;
         info.mediaId = -1;
 		return info;
 	}
@@ -705,19 +758,16 @@ public class API {
 						+ output);
                 JSONObject jobj = new JSONObject(output);
                 info.mediaId = jobj.getInt("id");
+        		info.success = true;
                 return info;
 
             } catch (Exception e) {
                 try {
                     JSONObject jobj = new JSONObject(output);
                     info.errorMessage = jobj.getString("msg");
-                    info.mediaId = -1;
-                    return info;
                 } catch (Exception e2) {
                     JSONObject jobj = new JSONObject(output);
                     info.errorMessage = jobj.getString("error");
-                    info.mediaId = -1;
-                    return info;
                 }
 			} finally {
 				in.close();
@@ -725,7 +775,9 @@ public class API {
 
 		} catch (Exception e) {
 			e.printStackTrace();
+			info.errorMessage = output;
 		}
+		info.success = false;
         info.mediaId = -1;
         return info;
 	}

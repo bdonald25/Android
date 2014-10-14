@@ -26,6 +26,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import edu.uml.cs.isense.R;
 import edu.uml.cs.isense.comm.API;
+import edu.uml.cs.isense.comm.UploadInfo;
 import edu.uml.cs.isense.credentials.CredentialManager;
 import edu.uml.cs.isense.objects.RProjectField;
 import edu.uml.cs.isense.supplements.OrientationManager;
@@ -424,8 +425,10 @@ public class ProjectCreate extends Activity {
 
 		@Override
 		protected Void doInBackground(Void... params) {
-			newProjID = api.createProject(projectName.getText().toString(),
+
+			UploadInfo info = api.createProject(projectName.getText().toString(),
 					fields);
+			newProjID = info.projectId;
 
 			publishProgress(100);
 			return null;

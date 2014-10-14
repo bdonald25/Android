@@ -13,6 +13,7 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import edu.uml.cs.isense.R;
 import edu.uml.cs.isense.comm.API;
+import edu.uml.cs.isense.comm.UploadInfo;
 import edu.uml.cs.isense.objects.RProjectField;
 import edu.uml.cs.isense.supplements.OrientationManager;
 
@@ -339,9 +340,9 @@ public class ProjectFieldDialog extends Activity {
 			if (params[1] instanceof ArrayList<?>) {
 				@SuppressWarnings("unchecked")
 				ArrayList<RProjectField> fields = (ArrayList<RProjectField>) params[1];
-				int projID = api.createProject(projName, fields);
-				ProjectManager.setProject(mContext, String.valueOf(projID));
-				return projID;
+				UploadInfo info = api.createProject(projName, fields);
+				ProjectManager.setProject(mContext, String.valueOf(info.projectId));
+				return info.projectId;
 			} else {
 				return -1;
 			}
