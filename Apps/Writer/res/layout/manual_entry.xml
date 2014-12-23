@@ -32,8 +32,6 @@
 	        android:layout_weight="1"
             android:singleLine="true"
 	        android:ems="10" >
-
-        <requestFocus />
     </EditText>
 
     </LinearLayout>
